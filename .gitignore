@@ -5,3 +5,10 @@
 /dremio-lib/dremio/
 /docker/
 /dremio-data/cm/
+/mongo-data/.mongodb/
+/mongo-data/diagnostic.data/
+/mongo-data/journal/
+/mongo-data/*.wt
+/mongo-data/*.lock
+/mongo-data/*.bson
+/mongo-data/WiredTiger*
