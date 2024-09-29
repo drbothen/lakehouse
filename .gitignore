@@ -3,3 +3,4 @@
 /dremio-data/spill/
 /dremio-data/zk/
 /dremio-lib/dremio/
+/docker/
