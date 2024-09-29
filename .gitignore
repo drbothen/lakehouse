@@ -12,3 +12,4 @@
 /mongo-data/*.lock
 /mongo-data/*.bson
 /mongo-data/WiredTiger*
+/dremio-data/security/
