@@ -1,0 +1,5 @@
+/dremio-data/db/
+/dremio-data/dist/
+/dremio-data/spill/
+/dremio-data/zk/
+/dremio-lib/dremio/
