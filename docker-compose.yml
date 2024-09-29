@@ -20,20 +20,34 @@ services:
   nessie:
     image: projectnessie/nessie:latest
     container_name: nessie
+    depends_on:
+      - mongo
     environment:
       - QUARKUS_PROFILE=prod
       - QUARKUS_HTTP_PORT=19120
       - QUARKUS_LOG_CONSOLE_FORMAT=%d{yyyy-MM-dd HH:mm:ss} %-5p [%c{1.}] (%t) %s%e%n
       - QUARKUS_LOG_LEVEL=INFO
-      - QUARKUS_DATASOURCE_DB_KIND=rocksdb
-      - QUARKUS_DATASOURCE_JDBC_URL=jdbc:rocksdb:file:///nessie/data
-      - QUARKUS_DATASOURCE_USERNAME=nessie
-      - QUARKUS_DATASOURCE_PASSWORD=nessie
       - OTEL_TRACES_EXPORTER=none
+      - nessie.version.store.type=MONGODB
+      - quarkus.mongodb.database=nessie
+      - quarkus.mongodb.connection-string=mongodb://root:password@mongo:27017
     volumes:
       - ./nessie-data:/nessie/data  # Persist RocksDB data
     ports:
       - "19120:19120"  # Expose Nessie API port
+    networks:
+      - intro-network
+
+  # Persistent Data Store for Nessie
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - ./mongo-data:/data/db
     networks:
       - intro-network
 
@@ -147,7 +161,7 @@ services:
     restart: unless-stopped
     volumes:
       - db_home:/var/lib/postgresql/data
-      - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - ./build/superset/docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     networks:
       - intro-network
 
