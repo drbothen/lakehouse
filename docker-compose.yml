@@ -1,48 +1,49 @@
-version: "3"
-
-x-superset-depends-on: &superset-depends-on
-  - db
-  - redis
-
-x-superset-volumes:
-  &superset-volumes
-  - ./build/superset/docker:/app/docker
-  - superset_home:/app/superset_home
-
-x-common-build: &common-build
-  context: ./build/superset  # Point to the correct Dockerfile location for Superset
-  #target: dev
-  cache_from:
-    - apache/superset-cache:3.10-slim-bookworm  # Cache image to speed up build if possible
-
+version: '3'
 services:
-  # Nessie Catalog Server Using In-Memory Store
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_HOST=db  # Updated to use the db service
+      - DB_POSTGRESDB_PORT=5432  # Standard PostgreSQL port
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=n8n
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+    networks:
+      - intro-network
+
   nessie:
-    image: projectnessie/nessie:latest
+    image: projectnessie/nessie:0.76.6
     container_name: nessie
+    restart: unless-stopped
     depends_on:
       - mongo
     environment:
       - QUARKUS_PROFILE=prod
       - QUARKUS_HTTP_PORT=19120
-      - QUARKUS_LOG_CONSOLE_FORMAT=%d{yyyy-MM-dd HH:mm:ss} %-5p [%c{1.}] (%t) %s%e%n
       - QUARKUS_LOG_LEVEL=INFO
       - OTEL_TRACES_EXPORTER=none
       - nessie.version.store.type=MONGODB
-      - quarkus.mongodb.database=nessie
       - quarkus.mongodb.connection-string=mongodb://root:password@mongo:27017
     volumes:
-      - ./nessie-data:/nessie/data  # Persist RocksDB data
+      - ./nessie-data:/nessie/data
     ports:
-      - "19120:19120"  # Expose Nessie API port
+      - "19120:19120"
     networks:
       - intro-network
 
-  # Persistent Data Store for Nessie
   mongo:
     image: mongo
     ports:
       - "27017:27017"
+    container_name: mongo
+    restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: password
@@ -51,65 +52,46 @@ services:
     networks:
       - intro-network
 
-  # Minio Storage Server
   minio:
-    image: minio/minio
+    image: minio/minio:RELEASE.2024-10-02T17-50-41Z
     container_name: minio
+    restart: unless-stopped
     environment:
       - MINIO_ROOT_USER=admin
       - MINIO_ROOT_PASSWORD=password
       - MINIO_DOMAIN=minio
-      - MINIO_REGION_NAME=us-east-1
-      - MINIO_REGION=us-east-1
     ports:
       - "9000:9000"
       - "9001:9001"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
     volumes:
-      - ./minio-data:/minio-data  # Persist Minio data
+      - ./minio-data:/minio-data
     entrypoint: >
       /bin/sh -c "
       minio server /data --console-address ':9001' &
       sleep 5;
       mc alias set myminio http://localhost:9000 admin password;
       mc mb myminio/datalake;
-      mc mb myminio/datalakehouse;
       mc mb myminio/warehouse;
-      mc mb myminio/seed;
-      mc cp /minio-data/* myminio/seed/;
       tail -f /dev/null"
     networks:
       - intro-network
 
-  # Spark
   spark:
-    platform: linux/x86_64
-    image: alexmerced/spark35nb:latest
+    image: alexmerced/spark35nb:spark3_5_2
     ports:
-      - 8080:8080    # Master Web UI
-      - 7077:7077    # Master Port for job submissions
-      - 8081:8081    # Worker Web UI
-      - 4040-4045:4040-4045  # Additional Spark job UI ports for more jobs
-      - 18080:18080  # Spark History Server
-      - 8888:8888    # Jupyter Notebook
+      - 8080:8080
+      - 7077:7077
+      - 8081:8081
+      - 4040-4045:4040-4045
+      - 18080:18080
+      - 8888:8888
     environment:
       - AWS_REGION=us-east-1
-      - AWS_ACCESS_KEY_ID=admin  # Minio username
-      - AWS_SECRET_ACCESS_KEY=password  # Minio password
       - SPARK_MASTER_HOST=spark
-      - SPARK_MASTER_PORT=7077
-      - SPARK_MASTER_WEBUI_PORT=8080
-      - SPARK_WORKER_WEBUI_PORT=8081
-      - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=/tmp/spark-events
-      - SPARK_HOME=/opt/spark  # Set SPARK_HOME explicitly
     volumes:
-      - ./notebook-seed:/workspace/seed-data  # Seed data into the container
-      - ./spark-events:/tmp/spark-events  # Persist Spark history logs
+      - ./spark-events:/tmp/spark-events
     container_name: spark
+    restart: unless-stopped
     entrypoint: >
       /bin/bash -c "
       /opt/spark/sbin/start-master.sh && \
@@ -121,25 +103,20 @@ services:
     networks:
       - intro-network
 
-  # Dremio
   dremio:
-    platform: linux/x86_64
-    image: dremio/dremio-oss:latest
+    image: dremio/dremio-oss:25.1
     ports:
       - 9047:9047
       - 31010:31010
-      - 32010:32010
-      - 45678:45678
     container_name: dremio
+    restart: unless-stopped
     environment:
       - DREMIO_JAVA_SERVER_EXTRA_OPTS=-Dpaths.dist=file:///opt/dremio/data/dist
     volumes:
-      - ./dremio-data:/opt/dremio/data  # Persist Dremio data
-      - ./dremio-lib:/var/lib/dremio    # Persist Dremio library data
+      - ./dremio-data:/opt/dremio/data
     networks:
       - intro-network
 
-  # Redis for Superset
   redis:
     image: redis:7
     container_name: superset_cache
@@ -149,13 +126,7 @@ services:
     networks:
       - intro-network
 
-  # Postgres Database for Superset
   db:
-    env_file:
-      - path: build/.env # default
-        required: true
-      - path: build/.env-local # optional override
-        required: false
     image: postgres:15
     container_name: superset_db
     restart: unless-stopped
@@ -165,105 +136,85 @@ services:
     networks:
       - intro-network
 
-  # Superset Application
   superset:
-    env_file:
-      - path: build/.env # default
-        required: true
-      - path: build/.env-local # optional override
-        required: false
     build:
-      <<: *common-build  # Uses the common build configuration with context and cache
+      context: ./build/superset
     container_name: superset_app
-    command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
-    user: "root"
     restart: unless-stopped
+    command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
     ports:
       - 8088:8088
-    depends_on: *superset-depends-on
-    volumes: *superset-volumes
+    volumes:
+      - ./build/superset/docker:/app/docker
+      - ./superset_home:/app/superset_home
     networks:
       - intro-network
 
-  # Superset Initialization
   superset-init:
-    container_name: superset_init
     build:
-      <<: *common-build
+      context: ./build/superset
+    container_name: superset_init
     command: ["/app/docker/docker-init.sh"]
-    env_file:
-      - path: build/.env # default
-        required: true
-      - path: build/.env-local # optional override
-        required: false
-    depends_on: *superset-depends-on
-    user: "root"
-    volumes: *superset-volumes
-    healthcheck:
-      disable: true
+    volumes:
+      - ./build/superset/docker:/app/docker
+      - ./superset_home:/app/superset_home
     networks:
       - intro-network
 
-  # Superset Worker
   superset-worker:
     build:
-      <<: *common-build
+      context: ./build/superset
     container_name: superset_worker
-    command: ["/app/docker/docker-bootstrap.sh", "worker"]
-    env_file:
-      - path: build/.env # default
-        required: true
-      - path: build/.env-local # optional override
-        required: false
     restart: unless-stopped
-    depends_on: *superset-depends-on
-    user: "root"
-    volumes: *superset-volumes
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME",
-        ]
+    command: ["/app/docker/docker-bootstrap.sh", "worker"]
+    volumes:
+      - ./build/superset/docker:/app/docker
+      - ./superset_home:/app/superset_home
     networks:
       - intro-network
 
-  # Superset Worker Beat
   superset-worker-beat:
     build:
-      <<: *common-build
+      context: ./build/superset
     container_name: superset_worker_beat
-    command: ["/app/docker/docker-bootstrap.sh", "beat"]
-    env_file:
-      - path: build/.env # default
-        required: true
-      - path: build/.env-local # optional override
-        required: false
     restart: unless-stopped
-    depends_on: *superset-depends-on
-    user: "root"
-    volumes: *superset-volumes
-    healthcheck:
-      disable: true
+    command: ["/app/docker/docker-bootstrap.sh", "beat"]
+    volumes:
+      - ./build/superset/docker:/app/docker
+      - ./superset_home:/app/superset_home
     networks:
       - intro-network
 
-volumes:
-  superset_home:
-    external: false
-  db_home:
-    external: false
-  redis:
-    external: false
+  # Potentially Remove
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8082:8080
 
-  # Nessie and Minio Data
+  pgadmin:
+    image: dpage/pgadmin4:8.12.0
+    container_name: pgadmin
+    ports:
+      - "8083:80"  # Expose port 80 on the host machine to access pgAdmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=user@domain.com  # Default pgAdmin email
+      - PGADMIN_DEFAULT_PASSWORD=SuperSecret   # Default pgAdmin password
+    restart: unless-stopped  # Automatically restart the container unless stopped manually
+    volumes:
+      - ./pgadmin-data:/var/lib/pgadmin  # Add volume for persistence
+    networks:
+      - intro-network  # Use the existing network if needed
+
+volumes:
+  n8n_data:
+  superset_home:
+  db_home:
+  redis:
   nessie-data:
   minio-data:
-  notebook-seed:
   spark-events:
   dremio-data:
-  dremio-lib:
 
 networks:
   intro-network:
-
