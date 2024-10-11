@@ -13,3 +13,7 @@
 /mongo-data/*.bson
 /mongo-data/WiredTiger*
 /dremio-data/security/
+/pgadmin-data/azurecredentialcache/
+/pgadmin-data/sessions/
+/pgadmin-data/storage/
+/pgadmin-data/pgadmin4.db
