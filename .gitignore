@@ -17,3 +17,4 @@
 /pgadmin-data/sessions/
 /pgadmin-data/storage/
 /pgadmin-data/pgadmin4.db
+/superset_home/.local/
