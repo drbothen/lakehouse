@@ -206,15 +206,5 @@ services:
     networks:
       - intro-network  # Use the existing network if needed
 
-volumes:
-  n8n_data:
-  superset_home:
-  db_home:
-  redis:
-  nessie-data:
-  minio-data:
-  spark-events:
-  dremio-data:
-
 networks:
   intro-network:
