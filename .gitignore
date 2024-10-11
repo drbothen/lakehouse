@@ -20,3 +20,4 @@
 /superset_home/.local/
 /n8n_data/config
 /n8n_data/crash.journal
+/superset_home/sqllab/
