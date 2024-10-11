@@ -1,3 +1,7 @@
+x-superset-depends-on: &superset-depends-on
+  - db
+  - redis
+
 services:
   n8n:
     image: docker.n8n.io/n8nio/n8n
@@ -136,11 +140,18 @@ services:
       - intro-network
 
   superset:
+    env_file:
+      - path: ./build/.env # default
+        required: true
+      - path: ./build/.env-local # optional override
+        required: false
     build:
       context: ./build/superset
     container_name: superset_app
     restart: unless-stopped
+    depends_on: *superset-depends-on
     command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
+    user: "root"
     ports:
       - 8088:8088
     volumes:
@@ -150,6 +161,12 @@ services:
       - intro-network
 
   superset-init:
+    env_file:
+      - path: ./build/.env # default
+        required: true
+      - path: ./build/.env-local # optional override
+        required: false
+    depends_on: *superset-depends-on
     build:
       context: ./build/superset
     container_name: superset_init
@@ -157,32 +174,56 @@ services:
     volumes:
       - ./build/superset/docker:/app/docker
       - ./superset_home:/app/superset_home
+    healthcheck:
+      disable: true
     networks:
       - intro-network
 
   superset-worker:
+    env_file:
+      - path: ./build/.env # default
+        required: true
+      - path: ./build/.env-local # optional override
+        required: false
+    depends_on: *superset-depends-on
     build:
       context: ./build/superset
     container_name: superset_worker
     restart: unless-stopped
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
+    user: "root"
     volumes:
       - ./build/superset/docker:/app/docker
       - ./superset_home:/app/superset_home
     networks:
       - intro-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME",
+        ]
 
   superset-worker-beat:
+    env_file:
+      - path: ./build/.env # default
+        required: true
+      - path: ./build/.env-local # optional override
+        required: false
+    depends_on: *superset-depends-on
     build:
       context: ./build/superset
     container_name: superset_worker_beat
     restart: unless-stopped
     command: ["/app/docker/docker-bootstrap.sh", "beat"]
+    user: "root"
     volumes:
       - ./build/superset/docker:/app/docker
       - ./superset_home:/app/superset_home
     networks:
       - intro-network
+    healthcheck:
+      disable: true
 
   # Potentially Remove
   adminer:
