@@ -1,1 +1,4 @@
-sqlalchemy_dremio
+# For connecting to dremio
+# sqlalchemy_dremio==3.0.4
+## datetime64[ms] issue here: https://community.dremio.com/t/superset-dremio-error-datetime64-ms-for-timestamp-field/11827
+git+https://github.com/drbothen/sqlalchemy_dremio.git
