@@ -86,3 +86,25 @@ Ensure that the appropriate ports (listed above) are open and not blocked by fir
 The services will run in a shared Docker network called intro-network, allowing them to communicate with each other.
 
 For persistent data storage, ensure the mounted directories (./nessie-data, ./minio-data, ./notebook-seed) exist on your local machine.
+
+
+
+dremio+flight://admin:admin@dremio:32010?UseEncryption=false
+
+dremio+flight://test:1qaz2wsx!QAZ@WSX@dremio:32010?UseEncryption=false
+
+https://towardsdatascience.com/anomaly-detection-using-sigma-rules-build-your-own-spark-streaming-detections-657bcef3988a
+
+
+SELECT
+key,
+fields,
+t.fields.summary AS "summary",
+t.fields.created AS "created",
+t.fields.creator.displayName AS "creator",
+t.fields.status.name AS "status",
+t.fields.issuetype.name AS "type",
+t.fields.customfield_10010.requestType.description AS "service description",
+t.fields.description AS "description",
+t.fields.customfield_10119.completedCycles[0].elapsedTime.friendly AS "elapsed time"
+FROM nessie.jira.aod."aod_raw" AS t;
