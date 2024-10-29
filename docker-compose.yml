@@ -7,6 +7,7 @@ services:
     container_name: n8n
     build: ./build/n8n
     restart: unless-stopped
+    #command: "start --tunnel" # Optional, if you want to use the n8n hosted reverse tunnel for receiving webhooks
     ports:
       - "5678:5678"
     environment:
@@ -16,6 +17,7 @@ services:
       - DB_POSTGRESDB_PORT=5432  # Standard PostgreSQL port
       - DB_POSTGRESDB_USER=n8n
       - DB_POSTGRESDB_PASSWORD=n8n
+      #- N8N_TUNNEL_SUBDOMAIN=example # Optional, if you want to use a custom subdomain
       - NODE_FUNCTION_ALLOW_EXTERNAL=*  # Allow external functions
     volumes:
       - ./n8n_data:/home/node/.n8n
