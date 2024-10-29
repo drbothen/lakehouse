@@ -10,15 +10,8 @@ services:
     #command: "start --tunnel" # Optional, if you want to use the n8n hosted reverse tunnel for receiving webhooks
     ports:
       - "5678:5678"
-    environment:
-      - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_HOST=db  # Updated to use the db service
-      - DB_POSTGRESDB_PORT=5432  # Standard PostgreSQL port
-      - DB_POSTGRESDB_USER=n8n
-      - DB_POSTGRESDB_PASSWORD=n8n
-      #- N8N_TUNNEL_SUBDOMAIN=example # Optional, if you want to use a custom subdomain
-      - NODE_FUNCTION_ALLOW_EXTERNAL=*  # Allow external functions
+    env_file:
+      - .env
     volumes:
       - ./n8n_data:/home/node/.n8n
       - ./n8n-files:/files
@@ -42,13 +35,8 @@ services:
     restart: unless-stopped
     depends_on:
       - mongo
-    environment:
-      - QUARKUS_PROFILE=prod
-      - QUARKUS_HTTP_PORT=19120
-      - QUARKUS_LOG_LEVEL=INFO
-      - OTEL_TRACES_EXPORTER=none
-      - nessie.version.store.type=MONGODB
-      - quarkus.mongodb.connection-string=mongodb://root:password@mongo:27017
+    env_file:
+      - .env
     volumes:
       - ./nessie-data:/nessie/data
     ports:
@@ -62,9 +50,8 @@ services:
       - "27017:27017"
     container_name: mongo
     restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: password
+    env_file:
+      - .env
     volumes:
       - ./mongo-data:/data/db
     networks:
@@ -74,10 +61,8 @@ services:
     image: minio/minio:RELEASE.2024-10-02T17-50-41Z
     container_name: minio
     restart: unless-stopped
-    environment:
-      - MINIO_ROOT_USER=admin
-      - MINIO_ROOT_PASSWORD=password
-      - MINIO_DOMAIN=minio
+    env_file:
+      - .env
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -103,9 +88,8 @@ services:
       - 4040-4045:4040-4045
       - 18080:18080
       - 8888:8888
-    environment:
-      - AWS_REGION=us-east-1
-      - SPARK_MASTER_HOST=spark
+    env_file:
+      - .env
     volumes:
       - ./spark-events:/tmp/spark-events
     container_name: spark
@@ -128,8 +112,8 @@ services:
       - 31010:31010
     container_name: dremio
     restart: unless-stopped
-    environment:
-      - DREMIO_JAVA_SERVER_EXTRA_OPTS=-Dpaths.dist=file:///opt/dremio/data/dist
+    env_file:
+      - .env
     volumes:
       - ./dremio-data:/opt/dremio/data
     networks:
@@ -257,9 +241,8 @@ services:
     container_name: pgadmin
     ports:
       - "8083:80"  # Expose port 80 on the host machine to access pgAdmin4
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=user@domain.com  # Default pgAdmin email
-      - PGADMIN_DEFAULT_PASSWORD=SuperSecret   # Default pgAdmin password
+    env_file:
+      - .env
     restart: unless-stopped  # Automatically restart the container unless stopped manually
     volumes:
       - ./pgadmin-data:/var/lib/pgadmin  # Add volume for persistence
