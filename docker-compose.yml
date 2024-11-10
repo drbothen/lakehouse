@@ -11,7 +11,10 @@ services:
     ports:
       - "5678:5678"
     env_file:
-      - .env
+      - path: .env
+        required: false
+      - path: ../stack.env # optional override
+        required: false
     volumes:
       - ./n8n_data:/home/node/.n8n
       - ./n8n-files:/files
@@ -24,7 +27,10 @@ services:
     ports:
       - "4444:4444"
     env_file:
-      - .env
+      - path: .env
+        required: false
+      - path: ../stack.env # optional override
+        required: false
     networks:
       - intro-network
 
@@ -36,7 +42,10 @@ services:
     depends_on:
       - mongo
     env_file:
-      - .env
+      - path: .env
+        required: false
+      - path: ../stack.env # optional override
+        required: false
     volumes:
       - ./nessie-data:/nessie/data
     ports:
@@ -51,7 +60,10 @@ services:
     container_name: mongo
     restart: unless-stopped
     env_file:
-      - .env
+      - path: .env
+        required: false
+      - path: ../stack.env # optional override
+        required: false
     volumes:
       - ./mongo-data:/data/db
     networks:
@@ -62,7 +74,10 @@ services:
     container_name: minio
     restart: unless-stopped
     env_file:
-      - .env
+      - path: .env
+        required: false
+      - path: ../stack.env # optional override
+        required: false
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -89,7 +104,10 @@ services:
       - 18080:18080
       - 8888:8888
     env_file:
-      - .env
+      - path: .env
+        required: false
+      - path: ../stack.env # optional override
+        required: false
     volumes:
       - ./spark-events:/tmp/spark-events
     container_name: spark
@@ -113,7 +131,10 @@ services:
     container_name: dremio
     restart: unless-stopped
     env_file:
-      - .env
+      - path: .env
+        required: false
+      - path: ../stack.env # optional override
+        required: false
     volumes:
       - ./dremio-data:/opt/dremio/data
     networks:
@@ -135,6 +156,8 @@ services:
         required: true
       - path: build/.env-local # optional override
         required: false
+      - path: ../stack.env # optional override
+        required: false
     container_name: db
     restart: unless-stopped
     volumes:
@@ -148,6 +171,8 @@ services:
       - path: ./build/.env # default
         required: true
       - path: ./build/.env-local # optional override
+        required: false
+      - path: ../stack.env # optional override
         required: false
     build:
       context: ./build/superset
@@ -170,6 +195,8 @@ services:
         required: true
       - path: ./build/.env-local # optional override
         required: false
+      - path: ../stack.env # optional override
+        required: false
     depends_on: *superset-depends-on
     build:
       context: ./build/superset
@@ -188,6 +215,8 @@ services:
       - path: ./build/.env # default
         required: true
       - path: ./build/.env-local # optional override
+        required: false
+      - path: ../stack.env # optional override
         required: false
     depends_on: *superset-depends-on
     build:
@@ -213,6 +242,8 @@ services:
       - path: ./build/.env # default
         required: true
       - path: ./build/.env-local # optional override
+        required: false
+      - path: ../stack.env # optional override
         required: false
     depends_on: *superset-depends-on
     build:
